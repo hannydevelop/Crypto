@@ -1,6 +1,8 @@
 //import all dependencies required
 const express = require('express');
 const cors = require('cors');
+passport = require("passport");
+var LocalStrategy = require('passport-local').Strategy;
 //set variable users as expressRouter
 var users = express.Router();
 
@@ -8,6 +10,16 @@ var users = express.Router();
 var { User } = require('../models/User');
 //protect route with cors
 users.use(cors())
+
+users.use(passport.initialize());
+
+passport.serializeUser(function(user, done) {
+  done(null, user);
+});
+
+passport.deserializeUser(function(user, done) {
+  done(null, user);
+});
 
 // Handling user signup 
 users.post('/register', (req, res) => {
@@ -45,32 +57,40 @@ users.post('/register', (req, res) => {
     })
 })
 
+passport.use(new LocalStrategy(
+  function(username, password, done) {
+    // Find the user from your DB (MongoDB, CouchDB, other...)
+    User.findOne({ username: username, password: password }, function (err, user) {
+      done(err, user);
+    });
+  }
+))
 
 /*Set route for logging in registered users*/
-users.post('/login', (req, res) => {
-  User.findOne({
-    //check to see if an email like this is in the database
-    username: req.body.username
-  })
-    .then(user => {
-      //if the email exist in database then the user exists
-      if (user) {
-          const payload = {
-            username: user.username,
-            password: user.password,
+users.post('/login', passport.authenticate('local', { failureRedirect: '/login' }), (req, res) => {
+      User.findOne({
+        //check to see if an email like this is in the database
+        username: req.body.username
+      })
+        .then(user => {
+          //if the email exist in database then the user exists
+          if (user) {
+            const payload = {
+              username: user.username,
+              password: user.password,
+            }
+            //after successful login display token and payload data
+            res.redirect('/');
+          } else {
+            //if user cannot be found, display the message below
+            res.json({ error: 'user not found' })
           }
-          //after successful login display token and payload data
-        res.redirect('/');
-      } else {
-        //if user cannot be found, display the message below
-        res.json({ error: 'user not found' })
-      }
-    })
-    //catch and display any error that occurs while trying to login user
-    .catch(err => {
-      res.send('error:' + err)
-    })
-})
+        })
+        //catch and display any error that occurs while trying to login user
+        .catch(err => {
+          res.send('error:' + err)
+        })
+  })
 
 //export routes usercontroller 
 module.exports = users;
