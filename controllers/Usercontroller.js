@@ -32,7 +32,7 @@ users.post('/register', (req, res) => {
   }
   User.findOne({
     //ensure email is unique, i.e the email is not already in the database
-    username: req.body.username
+    username: req.body.username && password: req.body.password
   })
     .then(user => {
       //if the email is unique go ahead and create userData
