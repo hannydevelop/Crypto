@@ -1,25 +1,13 @@
 //import all dependencies required
 const express = require('express');
 const cors = require('cors');
-passport = require("passport");
-var LocalStrategy = require('passport-local').Strategy;
 //set variable users as expressRouter
 var users = express.Router();
 
 //import user model
 var { User } = require('../models/User');
 //protect route with cors
-users.use(cors())
-
-users.use(passport.initialize());
-
-passport.serializeUser(function(user, done) {
-  done(null, user);
-});
-
-passport.deserializeUser(function(user, done) {
-  done(null, user);
-});
+users.use(cors());
 
 // Handling user signup 
 users.post('/register', (req, res) => {
@@ -31,11 +19,11 @@ users.post('/register', (req, res) => {
     last_name: req.body.last_name,
   }
   User.findOne({
-    //ensure email is unique, i.e the email is not already in the database
-    username: req.body.username && password: req.body.password
+    //ensure username is unique, i.e the username is not already in the database
+    username: req.body.username
   })
     .then(user => {
-      //if the email is unique go ahead and create userData
+      //if the username is unique go ahead and create userData
       if (!user) {
           User.create(userData)
             .then(user => {
@@ -47,8 +35,8 @@ users.post('/register', (req, res) => {
               res.send('error:' + err)
             })
       } else {
-        //if the email is not unique, display that email is already registered with an account
-        res.json({ error: 'The email address ' + req.body.username + ' is registered with an account' })
+        //if the username is not unique, display that username is already registered with an account
+        res.json({ error: 'The username ' + req.body.username + ' is registered with an account' })
       }
     })
     .catch(err => {
@@ -57,23 +45,16 @@ users.post('/register', (req, res) => {
     })
 })
 
-passport.use(new LocalStrategy(
-  function(username, password, done) {
-    // Find the user from your DB (MongoDB, CouchDB, other...)
-    User.findOne({ username: username, password: password }, function (err, user) {
-      done(err, user);
-    });
-  }
-))
 
 /*Set route for logging in registered users*/
-users.post('/login', passport.authenticate('local', { failureRedirect: '/login' }), (req, res) => {
+users.post('/login', (req, res) => {
       User.findOne({
-        //check to see if an email like this is in the database
-        username: req.body.username
+        //check to see if a username like this is in the database
+        username: req.body.username,
+        password: req.body.password
       })
         .then(user => {
-          //if the email exist in database then the user exists
+          //if the username exist in database then the user exists
           if (user) {
             const payload = {
               username: user.username,
